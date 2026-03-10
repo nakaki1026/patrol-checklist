@@ -39,6 +39,31 @@
       });
     }
 
+    function formatTime(raw) {
+      if (!raw) return "";
+      if (String(raw).includes("T")) {
+        var d = new Date(raw);
+        return d.toLocaleString("ja-JP", {
+          timeZone: "Asia/Tokyo",
+          month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit",
+        });
+      }
+      return raw;
+    }
+
+    function formatDateKey(raw) {
+      if (!raw) return "";
+      if (String(raw).includes("T")) {
+        var d = new Date(raw);
+        return d.toLocaleDateString("ja-JP", {
+          timeZone: "Asia/Tokyo",
+          month: "2-digit", day: "2-digit",
+        });
+      }
+      return String(raw).split(" ")[0];
+    }
+
     function App() {
       const [tab, setTab] = useState("check"); // "check" or "log"
       const [current, setCurrent] = useState(null);
@@ -56,7 +81,7 @@
           const res = await fetch(GAS_URL + "?action=getLogs");
           const data = await res.json();
           setLogs(data);
-          const dates = [...new Set(data.map(r => r.time ? r.time.split(" ")[0] : ""))].filter(Boolean);
+          const dates = [...new Set(data.map(r => r.time ? formatDateKey(r.time) : ""))].filter(Boolean);
           setSavedDates(dates);
           if (dates.length > 0 && !dates.includes(selectedDate)) {
             setSelectedDate(dates[0]);
@@ -112,7 +137,7 @@
 
       const allChecked = current && ITEMS.every(i => current.items[i.id] !== null) && name.trim() !== "";
 
-      const filteredLogs = logs.filter(r => r.time && r.time.startsWith(selectedDate));
+      const filteredLogs = logs.filter(r => r.time && formatDateKey(r.time) === selectedDate);
       const hasNG = (r) => r.shelf1 === "破損あり" || r.shelf2 === "破損あり";
 
       return (
@@ -262,7 +287,7 @@
                       }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <div>
-                            <span style={{ fontSize: "13px", color: "#888" }}>{r.time}</span>
+                            <span style={{ fontSize: "13px", color: "#888" }}>{formatTime(r.time)}</span>
                             {r.name && <span style={{ fontSize: "13px", color: "#555", marginLeft: "8px" }}>👤 {r.name}</span>}
                           </div>
                           <span style={{
