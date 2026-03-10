@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>巡回チェックリスト</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f0f4ff; font-family: 'Helvetica Neue', Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const ITEMS = [
+      { id: "shelf1", label: "レジ前の棚", icon: "🛒" },
+      { id: "shelf2", label: "カップ麺コーナー横", icon: "🍜" },
+    ];
+
+    function getJST() {
+      return new Date().toLocaleString("ja-JP", {
+        timeZone: "Asia/Tokyo",
+        month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit",
+      });
+    }
+
+    function App() {
+      const [rounds, setRounds] = useState([]);
+      const [current, setCurrent] = useState(null);
+      const [note, setNote] = useState("");
+      const [name, setName] = useState("");
+      const [showLog, setShowLog] = useState(false);
+
+      function startRound() {
+        setCurrent({
+          id: Date.now(),
+          time: getJST(),
+          items: Object.fromEntries(ITEMS.map(i => [i.id, null])),
+        });
+        setNote("");
+      }
+
+      function setStatus(id, val) {
+        if (!current) return;
+        setCurrent(prev => ({ ...prev, items: { ...prev.items, [id]: val } }));
+      }
+
+      function finishRound() {
+        if (!current) return;
+        setRounds(prev => [{ ...current, note, name }, ...prev]);
+        setCurrent(null);
+        setNote("");
+      }
+
+      const allChecked = current && ITEMS.every(i => current.items[i.id] !== null) && name.trim() !== "";
+      const hasNG = (round) => Object.values(round.items).includes(false);
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#f0f4ff", padding: "16px", maxWidth: "480px", margin: "0 auto" }}>
+          <div style={{ background: "#3b6ef5", borderRadius: "16px", padding: "20px", marginBottom: "16px", color: "#fff" }}>
+            <div style={{ fontSize: "12px", opacity: 0.8, letterSpacing: "1px" }}>PATROL CHECKLIST</div>
+            <div style={{ fontSize: "22px", fontWeight: "bold", marginTop: "4px" }}>📋 巡回チェックリスト</div>
+            <div style={{ fontSize: "13px", opacity: 0.85, marginTop: "6px" }}>本日の巡回：{rounds.length}回 完了</div>
+          </div>
+
+          {!current && (
+            <button onClick={startRound} style={{
+              width: "100%", padding: "18px", background: "#3b6ef5", border: "none",
+              borderRadius: "14px", color: "#fff", fontSize: "17px", fontWeight: "bold",
+              cursor: "pointer", marginBottom: "16px", boxShadow: "0 4px 12px rgba(59,110,245,0.35)",
+            }}>
+              ＋ 巡回を開始する
+            </button>
+          )}
+
+          {current && (
+            <div style={{ background: "#fff", borderRadius: "16px", padding: "20px", marginBottom: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+              <div style={{ fontSize: "13px", color: "#888", marginBottom: "16px" }}>🕐 開始時刻：{current.time}</div>
+
+              <div style={{ fontSize: "12px", color: "#888", marginBottom: "6px" }}>👤 記入者名</div>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="お名前を入力してください"
+                style={{
+                  width: "100%", border: "1.5px solid #e5e7eb", borderRadius: "10px",
+                  padding: "10px 12px", fontSize: "14px", color: "#333",
+                  background: "#fafafa", marginBottom: "16px",
+                }}
+              />
+
+              {ITEMS.map((item, idx) => (
+                <div key={item.id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 0", borderBottom: idx < ITEMS.length - 1 ? "1px solid #f0f0f0" : "none",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ fontSize: "22px" }}>{item.icon}</span>
+                    <span style={{ fontSize: "15px", fontWeight: "600", color: "#222" }}>{item.label}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button onClick={() => setStatus(item.id, true)} style={{
+                      padding: "8px 14px", borderRadius: "20px", fontWeight: "bold", fontSize: "13px", cursor: "pointer",
+                      border: `2px solid ${current.items[item.id] === true ? "#22c55e" : "#d1d5db"}`,
+                      background: current.items[item.id] === true ? "#22c55e" : "#fff",
+                      color: current.items[item.id] === true ? "#fff" : "#9ca3af",
+                    }}>異常なし</button>
+                    <button onClick={() => setStatus(item.id, false)} style={{
+                      padding: "8px 14px", borderRadius: "20px", fontWeight: "bold", fontSize: "13px", cursor: "pointer",
+                      border: `2px solid ${current.items[item.id] === false ? "#ef4444" : "#d1d5db"}`,
+                      background: current.items[item.id] === false ? "#ef4444" : "#fff",
+                      color: current.items[item.id] === false ? "#fff" : "#9ca3af",
+                    }}>破損あり</button>
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ fontSize: "12px", color: "#888", marginTop: "16px", marginBottom: "6px" }}>メモ（任意）</div>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="気になったこと・不審者の特徴など..."
+                style={{
+                  width: "100%", minHeight: "64px", border: "1.5px solid #e5e7eb",
+                  borderRadius: "10px", padding: "10px", fontSize: "14px",
+                  resize: "vertical", color: "#333", background: "#fafafa",
+                }}
+              />
+
+              <button disabled={!allChecked} onClick={finishRound} style={{
+                width: "100%", marginTop: "16px", padding: "16px", border: "none",
+                borderRadius: "14px", fontSize: "16px", fontWeight: "bold",
+                background: allChecked ? "#22c55e" : "#e5e7eb",
+                color: allChecked ? "#fff" : "#aaa",
+                cursor: allChecked ? "pointer" : "not-allowed",
+              }}>
+                {allChecked ? "✓ 記録して完了" : "名前と全項目を入力してください"}
+              </button>
+            </div>
+          )}
+
+          {rounds.length > 0 && (
+            <div>
+              <div onClick={() => setShowLog(v => !v)} style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                fontSize: "14px", fontWeight: "600", color: "#3b6ef5",
+                cursor: "pointer", marginBottom: "12px", userSelect: "none",
+              }}>
+                <span>{showLog ? "▲" : "▼"}</span>
+                <span>巡回ログ（{rounds.length}件）</span>
+              </div>
+
+              {showLog && rounds.map(r => (
+                <div key={r.id} style={{
+                  background: "#fff", borderRadius: "12px", padding: "14px 16px", marginBottom: "8px",
+                  borderLeft: `4px solid ${hasNG(r) ? "#ef4444" : "#22c55e"}`,
+                  boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <span style={{ fontSize: "13px", color: "#888" }}>{r.time}</span>
+                      {r.name && <span style={{ fontSize: "13px", color: "#555", marginLeft: "8px" }}>👤 {r.name}</span>}
+                    </div>
+                    <span style={{
+                      fontSize: "12px", fontWeight: "bold", padding: "4px 10px", borderRadius: "20px",
+                      color: hasNG(r) ? "#ef4444" : "#22c55e",
+                      background: hasNG(r) ? "#fef2f2" : "#f0fdf4",
+                    }}>
+                      {hasNG(r) ? "⚠ 破損あり" : "✓ 異常なし"}
+                    </span>
+                  </div>
+                  {hasNG(r) && (
+                    <div style={{ marginTop: "6px", fontSize: "12px", color: "#ef4444" }}>
+                      {ITEMS.filter(i => r.items[i.id] === false).map(i => (
+                        <div key={i.id}>• {i.label}で破損を確認</div>
+                      ))}
+                    </div>
+                  )}
+                  {r.note && <div style={{ marginTop: "6px", fontSize: "12px", color: "#888" }}>📝 {r.note}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
