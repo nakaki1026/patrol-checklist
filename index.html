@@ -137,7 +137,7 @@
 
       const allChecked = current && ITEMS.every(i => current.items[i.id] !== null) && name.trim() !== "";
 
-      const filteredLogs = logs.filter(r => r.time && formatDateKey(r.time) === selectedDate);
+      const filteredLogs = logs.filter(r => r.time && formatDateKey(r.time) === selectedDate).reverse();
       const hasNG = (r) => r.shelf1 === "破損あり" || r.shelf2 === "破損あり";
 
       return (
