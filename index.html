@@ -17,6 +17,8 @@
   <script type="text/babel">
     const { useState } = React;
 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbynelTSIlKvwfd2nTHGne_Ce6ihn1urnltmBwkWYyfgPO-kNtkRCHIcZ9fpB-h8mgIuKA/exec";
+
     const ITEMS = [
       { id: "shelf1", label: "レジ前の棚", icon: "🛒" },
       { id: "shelf2", label: "カップ麺コーナー横", icon: "🍜" },
@@ -36,6 +38,7 @@
       const [note, setNote] = useState("");
       const [name, setName] = useState("");
       const [showLog, setShowLog] = useState(false);
+      const [saving, setSaving] = useState(false);
 
       function startRound() {
         setCurrent({
@@ -51,11 +54,28 @@
         setCurrent(prev => ({ ...prev, items: { ...prev.items, [id]: val } }));
       }
 
-      function finishRound() {
+      async function finishRound() {
         if (!current) return;
+        setSaving(true);
+        const record = {
+          time: current.time,
+          name: name,
+          shelf1: current.items.shelf1 === true ? "異常なし" : "破損あり",
+          shelf2: current.items.shelf2 === true ? "異常なし" : "破損あり",
+          note: note,
+        };
+        try {
+          await fetch(GAS_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(record),
+          });
+        } catch(e) {}
         setRounds(prev => [{ ...current, note, name }, ...prev]);
         setCurrent(null);
         setNote("");
+        setSaving(false);
       }
 
       const allChecked = current && ITEMS.every(i => current.items[i.id] !== null) && name.trim() !== "";
@@ -133,14 +153,14 @@
                 }}
               />
 
-              <button disabled={!allChecked} onClick={finishRound} style={{
+              <button disabled={!allChecked || saving} onClick={finishRound} style={{
                 width: "100%", marginTop: "16px", padding: "16px", border: "none",
                 borderRadius: "14px", fontSize: "16px", fontWeight: "bold",
-                background: allChecked ? "#22c55e" : "#e5e7eb",
-                color: allChecked ? "#fff" : "#aaa",
-                cursor: allChecked ? "pointer" : "not-allowed",
+                background: allChecked && !saving ? "#22c55e" : "#e5e7eb",
+                color: allChecked && !saving ? "#fff" : "#aaa",
+                cursor: allChecked && !saving ? "pointer" : "not-allowed",
               }}>
-                {allChecked ? "✓ 記録して完了" : "名前と全項目を入力してください"}
+                {saving ? "⏳ 保存中..." : allChecked ? "✓ 記録して完了" : "名前と全項目を入力してください"}
               </button>
             </div>
           )}
